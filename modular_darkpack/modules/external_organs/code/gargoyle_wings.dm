@@ -26,8 +26,7 @@
 /obj/item/organ/wings/functional/gargoyle/can_fly()
 	var/datum/bodypart_overlay/mutant/wings/functional/gargoyle/overlay = bodypart_overlay
 	if(overlay.hidden)
-		var/mob/living/carbon/human/human = owner
-		to_chat(human, span_warning("Your wings are tucked away!"))
+		to_chat(owner, span_warning("Your wings are tucked away!"))
 		return FALSE
 	return ..()
 
@@ -39,16 +38,18 @@
 	if(!wings_open || QDELETED(src))
 		return
 	playsound(owner, 'modular_darkpack/modules/external_organs/sounds/wing_flap_flying.ogg', 50, TRUE)
-	addtimer(CALLBACK(src, PROC_REF(flap_sound_loop)), 2 SECONDS) // adjust to match sound length
+	addtimer(CALLBACK(src, PROC_REF(flap_sound_loop)), 2 SECONDS)
 
 /obj/item/organ/wings/functional/gargoyle/on_mob_insert(mob/living/carbon/organ_owner, special, movement_flags)
 	. = ..()
-	if(QDELETED(toggle))
+	if(!toggle || QDELETED(toggle))
 		toggle = new
 	toggle.Grant(organ_owner)
 
 /obj/item/organ/wings/functional/gargoyle/on_mob_remove(mob/living/carbon/organ_owner, special, movement_flags)
 	. = ..()
+	if(wings_open)
+		toggle_flight(organ_owner)
 	toggle?.Remove(organ_owner)
 
 /obj/item/organ/wings/functional/gargoyle/Destroy()
@@ -57,13 +58,17 @@
 
 /datum/action/innate/toggle_gargoyle_wings
 	name = "Toggle Wings"
+	check_flags = AB_CHECK_CONSCIOUS|AB_CHECK_IMMOBILE|AB_CHECK_INCAPACITATED
 	button_icon = 'modular_darkpack/master_files/icons/hud/actions.dmi'
-	button_icon_state = "wings" // whatever icon state you want
+	button_icon_state = "wings"
 
 /datum/action/innate/toggle_gargoyle_wings/Activate()
 	var/mob/living/carbon/human/human = owner
 	var/obj/item/organ/wings/functional/gargoyle/wings = human.get_organ_slot(ORGAN_SLOT_EXTERNAL_WINGS)
 	if(!wings)
+		return
+	if(wings.wings_open)
+		to_chat(human, span_warning("You can't fold your wings while flying!"))
 		return
 	var/datum/bodypart_overlay/mutant/wings/functional/gargoyle/overlay = wings.bodypart_overlay
 
